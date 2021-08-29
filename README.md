@@ -61,7 +61,7 @@ ansible-playbook -i inventory.yml main.yml
 ## Inventory Configuration
 
 Variable | Reference
-- | -
+-|-
 `ansible_connection` | Keep it to ssh as we want ansible to connect to the host via ssh. *Change only if you know what you are doing.*
 `ansible_user` | User ansible should use for ssh connection
 `ansible_host` | IP Address of the host
@@ -73,7 +73,7 @@ Given `inventory.yml` has only one host. Multiple hosts can be added similarly w
 ## Playbook Configuration
 
 Variable | Reference
-- | -
+-|-
 `jellyfin.port` | 
 `jellyfin.baseurl` | 
 `jellyfin.movies_folder` | 
