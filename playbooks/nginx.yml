@@ -1,0 +1,54 @@
+- name: Nginx Playbook
+  hosts: all
+  become: yes
+  tags: nginx
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: true
+      tags: install
+
+    - name: Create apps folder
+      file:
+        path: /etc/nginx/apps
+        state: directory
+        mode: 0755
+      tags: create_folder
+
+    - name: Create site conf
+      template:
+        src: configs/site.conf
+        dest: "/etc/nginx/sites-available/{{ nginx.name }}.conf"
+        mode: 0644
+      tags: add_site
+
+    - name: Create site symlink
+      file:
+        src: "/etc/nginx/sites-available/{{ nginx.name }}.conf"
+        dest: "/etc/nginx/sites-enabled/{{ nginx.name }}.conf"
+        state: link
+      tags: add_site
+
+    - name: Delete default site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      tags: add_site
+    
+    - name: Restart Nginx
+      systemd:
+        name: nginx
+        state: restarted
+        enabled: true
+      tags: [enable, restart]
+
+    - name: Allow HTTP on Firewalld
+      ansible.posix.firewalld:
+        service: http
+        state: enabled
+        permanent: yes
+        immediate: yes
+        zone: public
+      tags: firewalld

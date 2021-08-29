@@ -1,0 +1,78 @@
+- name: Prowlarr Playbook
+  hosts: all
+  become: yes
+  tags: prowlarr
+  tasks:
+    - name: Install curl and sqlite3
+      apt:
+        name:
+          - curl
+          - sqlite3
+        state: present
+
+    - name: Create Prowlarr user
+      user:
+        name: "{{ prowlarr.user }}"
+        state: present
+        password: "!"
+        system: yes
+        home: "{{ prowlarr.home }}"
+        comment: Prowlarr Service
+      tags: create_user
+
+    - name: Download & Decompress Prowlarr
+      unarchive:
+        src: "http://prowlarr.servarr.com/v1/update/develop/updatefile?\
+        os=linux&runtime=netcore&arch={{ arr_map[arch_map[ansible_architecture]] }}"
+        dest: /opt
+        owner: "{{ prowlarr.user }}"
+        group: "{{ prowlarr.user }}"
+        remote_src: yes
+      tags: install
+
+    - name: Create service file
+      template:
+        src: services/prowlarr.service
+        dest: /etc/systemd/system/
+        mode: 0644
+      tags: add_service
+
+    - name: Enable Prowlarr
+      systemd:
+        name: prowlarr
+        state: restarted
+        enabled: true
+        daemon_reload: true
+      tags: [enable, restart]
+
+    - name: Wait for Prowlarr
+      wait_for:
+        port: 9696
+      tags: update_baseurl
+
+    - name: Update baseurl
+      replace:
+        path: "{{ prowlarr.home }}/config.xml"
+        regexp: "<UrlBase></UrlBase>"
+        replace: "<UrlBase>{{ prowlarr.baseurl }}</UrlBase>"
+      notify: Restart Prowlarr
+      tags: update_baseurl
+    
+    - name: Add to Nginx
+      template:
+        src: nginx/prowlarr.conf
+        dest: /etc/nginx/apps
+        mode: 0644
+      notify: Reload Nginx
+      tags: nginx
+
+  handlers:
+    - name: Restart Prowlarr
+      systemd:
+        name: prowlarr
+        state: restarted
+
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded

@@ -1,0 +1,74 @@
+- name: Jellyfin Playbook
+  hosts: all
+  become: yes
+  tags: jellyfin
+  tasks:
+    - name: Install apt-transport-https and gnupg
+      apt:
+        name:
+          - apt-transport-https
+          - gnupg
+        state: present
+      tags: gpg_key
+
+    - name: Import Jellyfin Team GPG key
+      apt_key:
+        url: https://repo.jellyfin.org/{{ ansible_distribution | lower }}/jellyfin_team.gpg.key
+        state: present
+      tags: gpg_key
+
+    - name: Add Jellyfin repository
+      apt_repository:
+        repo: >
+          deb [arch={{ arch_map[ansible_architecture] }}]
+          https://repo.jellyfin.org/{{ ansible_distribution | lower }}
+          {{ ansible_distribution_release }} main
+        filename: jellyfin
+        state: present
+      tags: add_repo
+    
+    - name: Install Jellyfin
+      apt:
+        name: jellyfin
+        state: present
+        update_cache: true
+      tags: install
+      
+    - name: Create media folders
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: jellyfin
+        group: jellyfin
+        mode: 0777
+      loop:
+        - "{{ jellyfin.movies_folder }}"
+        - "{{ jellyfin.shows_folder }}"
+      tags: create_folder
+
+    - name: Update baseurl
+      replace:
+        path: /etc/jellyfin/network.xml
+        regexp: "<BaseUrl />"
+        replace: "<BaseUrl>{{ jellyfin.baseurl }}</BaseUrl>"
+      notify: Restart Jellyfin
+      tags: update_baseurl
+      
+    - name: Add to Nginx
+      template:
+        src: nginx/jellyfin.conf
+        dest: /etc/nginx/apps
+        mode: 0644
+      notify: Reload Nginx
+      tags: nginx
+
+  handlers:
+    - name: Restart Jellyfin
+      systemd:
+        name: jellyfin
+        state: restarted
+
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded

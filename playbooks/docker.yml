@@ -1,0 +1,39 @@
+- name: Docker Playbook
+  hosts: all
+  become: yes
+  tags: docker
+  tasks:
+    - name: Install apt-transport-https and gnupg
+      apt:
+        name:
+          - apt-transport-https
+          - gnupg
+        state: present
+      tags: gpg_key
+
+    - name: Import Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg
+        state: present
+      tags: gpg_key
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: >
+          deb [arch={{ arch_map[ansible_architecture] }}]
+          https://download.docker.com/linux/{{ ansible_distribution | lower }}
+          {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+      tags: add_repo
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+        state: present
+        update_cache: true
+      tags: install

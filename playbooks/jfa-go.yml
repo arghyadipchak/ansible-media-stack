@@ -1,0 +1,71 @@
+- name: Jfa-Go Playbook
+  hosts: all
+  become: yes
+  tags: jfa-go
+  tasks:
+    - name: Install apt-transport-https and gnupg
+      apt:
+        name:
+          - apt-transport-https
+          - gnupg
+        state: present
+      tags: gpg_key
+
+    - name: Import Jfa-Go GPG key
+      apt_key:
+        url: https://apt.hrfee.dev/hrfee.pubkey.gpg
+        state: present
+      tags: gpg_key
+
+    - name: Add Jfa-Go repository
+      apt_repository:
+        repo: deb https://apt.hrfee.dev trusty main
+        filename: jfa-go
+        state: present
+      tags: add_repo
+
+    - name: Install Jfa-Go
+      apt:
+        name: jfa-go
+        state: present
+        update_cache: true
+      tags: install
+
+    - name: Create Jfa-Go user
+      user:
+        name: "{{ jfago.user }}"
+        state: present
+        password: "!"
+        system: yes
+        home: "{{ jfago.home }}"
+        comment: Jfa-Go Service
+      tags: create_user
+
+    - name: Create service file
+      template:
+        src: services/jfa-go.service
+        dest: /etc/systemd/system/
+        mode: 0644
+      tags: add_service
+
+    - name: Enable & Restart Jfa-Go
+      systemd:
+        name: jfa-go
+        state: restarted
+        enabled: true
+        daemon_reload: true
+      tags: [enable, restart]
+
+    - name: Add to Nginx
+      template:
+        src: nginx/jfa-go.conf
+        dest: /etc/nginx/apps
+        mode: 0644
+      notify: Reload Nginx
+      tags: nginx
+
+  handlers:
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded

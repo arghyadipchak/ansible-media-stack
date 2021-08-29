@@ -1,0 +1,62 @@
+- name: Ombi Playbook
+  hosts: all
+  become: yes
+  tags: ombi
+  tasks:
+    - name: Create Ombi user
+      user:
+        name: "{{ ombi.user }}"
+        state: present
+        password: "!"
+        system: yes
+        home: "{{ ombi.home }}"
+        comment: Ombi Service
+      tags: create_user
+
+    - name: Create Ombi folder
+      file:
+        path: /opt/Ombi
+        state: directory
+        owner: "{{ ombi.user }}"
+        group: "{{ ombi.user }}"
+        mode: 0775
+      tags: create_folder
+
+    - name: Download & Decompress Ombi
+      unarchive:
+        src: "https://github.com/Ombi-app/Ombi/releases/latest/download/\
+        linux-{{ arr_map[arch_map[ansible_architecture]] }}.tar.gz"
+        dest: /opt/Ombi
+        owner: "{{ ombi.user }}"
+        group: "{{ ombi.user }}"
+        remote_src: yes
+      tags: install
+      
+    - name: Create service file
+      template:
+        src: services/ombi.service
+        dest: /etc/systemd/system/
+        mode: 0644
+      tags: add_service
+
+    - name: Enable Ombi
+      systemd:
+        name: ombi
+        state: restarted
+        enabled: true
+        daemon_reload: true
+      tags: [enable, restart]
+
+    - name: Add to Nginx
+      template:
+        src: nginx/ombi.conf
+        dest: /etc/nginx/apps
+        mode: 0644
+      notify: Reload Nginx
+      tags: nginx
+
+  handlers:
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded

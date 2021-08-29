@@ -1,0 +1,50 @@
+arch_map:
+  amd64: amd64
+  x86_64: amd64
+  aarch64: arm64
+  armv7l: arm
+  armhf: arm
+arr_map:
+  amd64: x64
+  arm64: arm64
+  arm: arm
+jellyfin:
+  port: 8096
+  baseurl: /jellyfin
+  movies_folder: /media/media/movies
+  shows_folder: /media/media/shows
+jfago:
+  user: jfa
+  home: /var/lib/jfa
+  port: 8056
+  baseurl: /accounts
+nginx:
+  name: ansmedia
+  domain: ansmedia.tv
+ombi:
+  user: ombi
+  home: /var/lib/ombi
+  port: 5000
+  baseurl: /ombi
+prowlarr:
+  user: prowlarr
+  home: /var/lib/prowlarr
+  port: 9696
+  baseurl: /prowlarr
+qbittorrent:
+  user: qbittorrent
+  home: /var/lib/qbittorent
+  port: 8080
+  baseurl: /qbit
+  downloads_folder: /media/downloads
+radarr:
+  user: radarr
+  home: /var/lib/radarr
+  port: 7878
+  baseurl: /radarr
+sonarr:
+  port: 8989
+  baseurl: /sonarr
+proxy:
+  ovpn_url: <url> #openvpn-config-url
+  port: 1080

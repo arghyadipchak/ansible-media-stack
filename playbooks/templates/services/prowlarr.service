@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+
+[Unit]
+Description=Prowlarr Daemon
+After=syslog.target network.target
+
+[Service]
+User={{ prowlarr.user }}
+Group={{ prowlarr.user }}
+Type=simple
+
+ExecStart=/opt/Prowlarr/Prowlarr -nobrowser -data={{ prowlarr.home }}
+TimeoutStopSec=20
+KillMode=process
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,85 @@
+- name: qBittorent Playbook
+  hosts: all
+  become: yes
+  tags: qbittorrent
+  tasks:
+    - name: Add qBittorrent ppa repo
+      apt_repository:
+        repo: ppa:qbittorrent-team/qbittorrent-stable
+        filename: qbittorrent-stable
+        state: present
+        update_cache: true
+      tags: add_repo
+
+    - name: Install qBittorent-nox
+      apt:
+        name: qbittorrent-nox
+        state: present
+      tags: install
+
+    - name: Create qBittorrent user
+      user:
+        name: "{{ qbittorrent.user }}"
+        state: present
+        password: "!"
+        system: yes
+        home: "{{ qbittorrent.home }}"
+        comment: qBittorrent Service
+      tags: create_user
+
+    - name: Create downloads folder
+      file:
+        path: "{{ qbittorrent.downloads_folder }}"
+        state: directory
+        owner: "{{ qbittorrent.user }}"
+        group: "{{ qbittorrent.user }}"
+        mode: 0777
+      tags: create_folder
+
+    - name: Create service file
+      template:
+        src: services/qbittorrent.service
+        dest: /etc/systemd/system/
+        mode: 0644
+      tags: add_service
+
+    - name: Ensure config folder exists
+      file:
+        path: "{{ qbittorrent.home }}/.config/qBittorrent"
+        state: directory
+        owner: "{{ qbittorrent.user }}"
+        group: "{{ qbittorrent.user }}"
+        mode: 0700
+      tags: config
+
+    - name: Create configuration file
+      template:
+        src: configs/qBittorrent.conf
+        dest: "{{ qbittorrent.home }}/.config/qBittorrent/"
+        owner: "{{ qbittorrent.user }}"
+        group: "{{ qbittorrent.user }}"
+        mode: 0644
+        force: false
+      tags: config
+
+    - name: Enable qBittorrent
+      systemd:
+        name: qbittorrent
+        state: restarted
+        enabled: true
+        daemon_reload: true
+      tags: [enable, restart]
+
+    - name: Add to Nginx
+      template:
+        src: nginx/qbittorrent.conf
+        dest: /etc/nginx/apps
+        mode: 0644
+      notify: Reload Nginx
+      tags: nginx
+      
+  handlers:
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded

@@ -1,0 +1,101 @@
+- name: Radarr Playbook
+  hosts: all
+  become: yes
+  tags: radarr
+  tasks:
+    - name: Install apt-transport-https and gnupg
+      apt:
+        name:
+          - apt-transport-https
+          - gnupg
+        state: present
+      tags: gpg_key
+
+    - name: Import MediaInfo GPG Key
+      apt_key:
+        url: https://mediaarea.net/repo/deb/{{ ansible_distribution | lower }}/pubkey.gpg
+        state: present
+      tags: gpg_key
+
+    - name: Add MediaInfo repositories
+      apt_repository:
+        repo: "deb https://mediaarea.net/repo/deb/{{ ansible_distribution | lower }} \
+        {{ ansible_distribution_release }} main"
+        filename: mediainfo
+        state: present
+      tags: add_repo
+
+    - name: Install curl and sqlite3
+      apt:
+        name:
+          - curl
+          - mediainfo
+          - sqlite3
+        state: present
+      
+    - name: Create Radarr user
+      user:
+        name: "{{ radarr.user }}"
+        state: present
+        password: "!"
+        system: yes
+        home: "{{ radarr.home }}"
+        comment: Radarr Service
+      tags: create_user
+
+    - name: Download & Decompress Radarr
+      unarchive:
+        src: "http://radarr.servarr.com/v1/update/master/updatefile?\
+        os=linux&runtime=netcore&arch={{ arr_map[arch_map[ansible_architecture]] }}"
+        dest: /opt
+        owner: "{{ radarr.user }}"
+        group: "{{ radarr.user }}"
+        remote_src: yes
+      tags: install
+
+    - name: Create service file
+      template:
+        src: services/radarr.service
+        dest: /etc/systemd/system/
+        mode: 0644
+      tags: add_service
+
+    - name: Enable Radarr
+      systemd:
+        name: radarr
+        state: restarted
+        enabled: true
+        daemon_reload: true
+      tags: [enable, restart]
+
+    - name: Wait for Radarr
+      wait_for:
+        port: 7878
+      tags: update_baseurl
+
+    - name: Update baseurl
+      replace:
+        path: "{{ radarr.home }}/config.xml"
+        regexp: "<UrlBase></UrlBase>"
+        replace: "<UrlBase>{{ radarr.baseurl }}</UrlBase>"
+      notify: Restart Radarr
+      tags: update_baseurl
+    
+    - name: Add to Nginx
+      template:
+        src: nginx/radarr.conf
+        dest: /etc/nginx/apps
+        mode: 0644
+      notify: Reload Nginx
+      tags: nginx
+
+  handlers:
+    - name: Restart Radarr
+      systemd:
+        name: radarr
+        state: restarted
+
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded

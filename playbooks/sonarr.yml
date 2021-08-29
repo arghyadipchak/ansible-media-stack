@@ -1,0 +1,80 @@
+- name: Sonarr Playbook
+  hosts: all
+  become: yes
+  tags: sonarr
+  tasks:
+    - name: Install apt-transport-https and gnupg
+      apt:
+        name:
+          - apt-transport-https
+          - gnupg
+        state: present
+      tags: gpg_key
+
+    - name: Import Sonarr and Mono GPG keys
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: "{{ item }}"
+        state: present
+      loop:
+        - 2009837CBFFD68F45BC180471F4F90DE2A9B4BF8  # Sonarr
+        - 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF  # Mono
+      tags: gpg_key
+
+    - name: Import MediaInfo GPG Key
+      apt_key:
+        url: https://mediaarea.net/repo/deb/{{ ansible_distribution | lower }}/pubkey.gpg
+        state: present
+      tags: gpg_key
+
+    - name: Add Sonarr, Mono and MediaInfo repositories
+      apt_repository:
+        repo: "{{ item.repo }}"
+        filename: "{{ item.fname }}"
+        state: present
+      loop:
+        - repo: "deb https://apt.sonarr.tv/{{ ansible_distribution | lower }} \
+          {{ ansible_distribution_release }} main"
+          fname: sonarr
+        - repo: "deb https://download.mono-project.com/repo/\
+          {{ ansible_distribution | lower }} \
+          stable-{{ ansible_distribution_release }} main"
+          fname: mono
+        - repo: "deb https://mediaarea.net/repo/deb/{{ ansible_distribution | lower }} \
+          {{ ansible_distribution_release }} main"
+          fname: mediainfo
+      tags: add_repo
+
+    - name: Install Sonarr
+      apt:
+        name: sonarr
+        state: present
+        update_cache: true
+      tags: install
+
+    - name: Update baseurl
+      replace:
+        path: /var/lib/sonarr/config.xml
+        regexp: "<UrlBase></UrlBase>"
+        replace: "<UrlBase>{{ sonarr.baseurl }}</UrlBase>"
+      notify: Restart Sonarr
+      tags: update_baseurl
+    
+    - name: Add to Nginx
+      template:
+        src: nginx/sonarr.conf
+        dest: /etc/nginx/apps
+        mode: 0644
+      notify: Reload Nginx
+      tags: nginx
+      
+  handlers:
+    - name: Restart Sonarr
+      systemd:
+        name: sonarr
+        state: restarted
+
+    - name: Reload Nginx
+      systemd:
+        name: nginx
+        state: reloaded

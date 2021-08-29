@@ -1,0 +1,34 @@
+version: '3.4'
+services:
+  vpn:
+    container_name: ovpn
+    image: dperson/openvpn-client:latest
+    restart: unless-stopped
+    cap_add:
+      - net_admin
+    environment:
+      TZ: 'Asia/Kolkata'
+    networks:
+      - default
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    security_opt:
+      - label:disable
+    stdin_open: true
+    tty: true
+    volumes:
+      - /dev/net:/dev/net:z
+      - /docker/ovpn:/vpn
+    ports:
+      - 1080:1080
+    command: "-r 10.0.0.0/24,169.254.0.0/16"
+
+  proxy:
+    image: serjs/go-socks5-proxy
+    container_name: socks5
+    network_mode: service:vpn
+    restart: unless-stopped
+    depends_on:
+      - vpn

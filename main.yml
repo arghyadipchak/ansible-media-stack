@@ -1,0 +1,18 @@
+- name: Main Playbook
+  hosts: all
+  tags: always
+  tasks:
+    - name: Include variables
+      include_vars: vars.yml
+
+- import_playbook: playbooks/firewalld.yml
+- import_playbook: playbooks/nginx.yml
+- import_playbook: playbooks/qbittorrent.yml
+- import_playbook: playbooks/jellyfin.yml
+- import_playbook: playbooks/jfa-go.yml
+- import_playbook: playbooks/prowlarr.yml
+- import_playbook: playbooks/sonarr.yml
+- import_playbook: playbooks/radarr.yml
+- import_playbook: playbooks/ombi.yml
+- import_playbook: playbooks/docker.yml
+- import_playbook: playbooks/vpnproxy.yml

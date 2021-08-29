@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+
+[Unit]
+Description=Radarr Daemon
+After=syslog.target network.target
+
+[Service]
+User={{ radarr.user }}
+Group={{ radarr.user }}
+Type=simple
+
+ExecStart=/opt/Radarr/Radarr -nobrowser -data={{ radarr.home }}
+TimeoutStopSec=20
+KillMode=process
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

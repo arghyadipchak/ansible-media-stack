@@ -1,0 +1,11 @@
+- name: Firewalld Playbook
+  hosts: all
+  become: yes
+  tags: firewalld
+  tasks:
+    - name: Install Firewalld
+      apt:
+        name: firewalld
+        state: present
+        update_cache: true
+      tags: install

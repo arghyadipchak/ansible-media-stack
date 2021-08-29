@@ -1,0 +1,33 @@
+- name: Vpn + Proxy Playbook
+  hosts: all
+  become: yes
+  tags: [proxy, docker]
+  tasks:
+    - name: Create Docker folder
+      file:
+        path: /docker
+        state: directory
+        mode: 0755
+      tags: create_folder
+
+    - name: Create docker-compose file
+      template:
+        src: configs/docker-compose.yml
+        dest: /docker
+        mode: 0644
+
+    - name: Create ovpn folder
+      file:
+        path: /docker/ovpn
+        state: directory
+        mode: 0755
+      tags: create_folder
+
+    - name: Download ovpn config
+      get_url:
+        url: "{{ proxy.ovpn_url }}"
+        dest: /docker/ovpn/vpn.conf
+      tags: config
+
+    - name: Deploy containers
+      shell: docker-compose -f /docker/docker-compose.yml up -d --remove-orphans
