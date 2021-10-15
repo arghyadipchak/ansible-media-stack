@@ -32,3 +32,4 @@
     - name: Deploy containers
       community.docker.docker-compose:
       project-src: /docker
+      remove_orphans: yes
