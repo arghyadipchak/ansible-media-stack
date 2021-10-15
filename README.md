@@ -146,7 +146,7 @@ Tag | Reference
 
 # TODO
 
-- [ ] Use `community.docker.docker_compose `instead of `shell: docker-compose`
+- [x] Use `community.docker.docker_compose` instead of `shell: docker-compose`
 - [ ] Set application ports from `var.yml`
 
 # Notes
