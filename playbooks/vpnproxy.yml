@@ -30,4 +30,7 @@
       tags: config
 
     - name: Deploy containers
-      shell: docker-compose -f /docker/docker-compose.yml up -d --remove-orphans
+      community.docker.docker-compose:
+        project-src: /docker
+        remove_orphans: yes
+      tags: deployment
